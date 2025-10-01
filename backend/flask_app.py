@@ -17,6 +17,17 @@ logger = logging.getLogger(__name__)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 PORT = int(os.getenv("PORT", 5000))
 
+# Debug: Verificar estructura de archivos
+current_dir = os.path.dirname(os.path.abspath(__file__))
+frontend_dir = os.path.join(current_dir, '..', 'frontend')
+logger.info(f"📁 Directorio actual: {current_dir}")
+logger.info(f"📁 Directorio frontend: {frontend_dir}")
+logger.info(f"📁 Existe frontend?: {os.path.exists(frontend_dir)}")
+
+if os.path.exists(frontend_dir):
+    files = os.listdir(frontend_dir)
+    logger.info(f"📄 Archivos en frontend: {files}")
+
 # Inicializar cliente Groq
 try:
     client = Groq(api_key=GROQ_API_KEY)
@@ -227,33 +238,40 @@ def chat():
 def serve_frontend():
     """Servir el frontend HTML"""
     try:
-        with open('../frontend/index.html', 'r', encoding='utf-8') as f:
+        # Ruta absoluta para producción
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        frontend_path = os.path.join(current_dir, '..', 'frontend', 'index.html')
+        logger.info(f"📁 Intentando cargar: {frontend_path}")
+        
+        with open(frontend_path, 'r', encoding='utf-8') as f:
             return f.read()
     except Exception as e:
+        logger.error(f"❌ Error cargando frontend: {str(e)}")
         return f"Error cargando frontend: {str(e)}", 500
 
 @app.route('/<path:path>')
 def serve_static(path):
     """Servir archivos estáticos"""
     try:
-        # Intentar servir desde frontend/styles/
-        if path.startswith('styles/'):
-            with open(f'../frontend/{path}', 'r', encoding='utf-8') as f:
+        # Ruta absoluta para archivos estáticos
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(current_dir, '..', 'frontend', path)
+        logger.info(f"📁 Intentando cargar archivo: {file_path}")
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            # Determinar tipo de contenido
+            if path.endswith('.css'):
                 return f.read(), 200, {'Content-Type': 'text/css'}
-        
-        # Intentar servir desde frontend/js/
-        elif path.startswith('js/'):
-            with open(f'../frontend/{path}', 'r', encoding='utf-8') as f:
+            elif path.endswith('.js'):
                 return f.read(), 200, {'Content-Type': 'application/javascript'}
-        
-        # Por defecto, intentar servir el archivo
-        with open(f'../frontend/{path}', 'r', encoding='utf-8') as f:
-            return f.read()
-            
+            else:
+                return f.read()
     except Exception as e:
+        logger.error(f"❌ Archivo no encontrado: {path} - Error: {str(e)}")
         return f"Archivo no encontrado: {path}", 404
 
 # ==================== EJECUCIÓN ====================
 if __name__ == '__main__':
-    logger.info(f"🚀 Iniciando servidor Flask en http://localhost:{PORT}")
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    port = int(os.environ.get("PORT", 8000))
+    logger.info(f"🚀 Iniciando servidor Flask en puerto {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
