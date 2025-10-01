@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "cd backend && python flask_app.py"
+startCommand = "python backend/flask_app.py"
 
 [[services]]
 name = "web"
